@@ -2,16 +2,24 @@ const User = require('../models/user.model');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const registerUser = async (name, email, password) => {
+const registerUser = async (name, email, password, role = 'user') => {
   const existingUser = await User.findOne({ email });
   if (existingUser) throw new Error('El correo ya está registrado');
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  const user = new User({ name, email, passwordHash: hashedPassword });
-  await user.save();
 
+  // ✅ ahora se incluye el rol
+  const user = new User({
+    name,
+    email,
+    passwordHash: hashedPassword,
+    role,
+  });
+
+  await user.save();
   return user;
 };
+
 
 const loginUser = async (email, password) => {
   const user = await User.findOne({ email });

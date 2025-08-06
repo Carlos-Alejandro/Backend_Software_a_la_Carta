@@ -29,6 +29,10 @@ const authController = require('../controllers/auth.controller');
  *         password:
  *           type: string
  *           example: 12345678
+ *         role:                   # ✅ se agregó para permitir admin o user
+ *           type: string
+ *           enum: [user, admin]
+ *           example: user
  *     LoginRequest:
  *       type: object
  *       required:
