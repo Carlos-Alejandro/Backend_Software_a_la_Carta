@@ -25,6 +25,6 @@ const sendError = (res, { message = 'Error del servidor', statusCode = 500, erro
 };
 
 module.exports = {
-  sendSuccess,
-  sendError,
+  successResponse: sendSuccess,
+  errorResponse: sendError,
 };

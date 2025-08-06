@@ -8,6 +8,7 @@ module.exports = {
       password: { type: 'string', example: '12345678' },
     },
   },
+
   LoginRequest: {
     type: 'object',
     required: ['email', 'password'],
@@ -16,6 +17,7 @@ module.exports = {
       password: { type: 'string', example: '12345678' },
     },
   },
+
   AuthResponse: {
     type: 'object',
     properties: {
@@ -30,6 +32,28 @@ module.exports = {
           role: { type: 'string' },
         },
       },
+    },
+  },
+
+  Product: {
+    type: 'object',
+    required: ['name', 'price', 'stock', 'categoryId'],
+    properties: {
+      name: { type: 'string', example: 'Laptop HP 14"' },
+      description: { type: 'string', example: 'Laptop con 8GB RAM y SSD de 512GB' },
+      price: { type: 'number', example: 12999.99 },
+      stock: { type: 'integer', example: 5 },
+      imageUrl: { type: 'string', example: 'https://example.com/image.jpg' },
+      categoryId: { type: 'string', example: '64d989bdfc13ae1739000025' },
+    },
+  },
+
+  Category: {
+    type: 'object',
+    required: ['name'],
+    properties: {
+      name: { type: 'string', example: 'Laptops' },
+      description: { type: 'string', example: 'Portátiles, notebooks y ultrabooks' },
     },
   },
 };

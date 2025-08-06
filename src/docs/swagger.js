@@ -16,9 +16,24 @@ const options = {
       },
     ],
     components: {
+      // ✅ Agregamos bearerAuth
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+      // ✅ Mantén tus esquemas y respuestas
       schemas: require('./components/schemas'),
       responses: require('./components/responses'),
     },
+    // ✅ Activamos la seguridad globalmente
+    // security: [
+    //   {
+    //     bearerAuth: [],
+    //   },
+    // ],
   },
   apis: ['./src/routes/*.js'], // escanear tus rutas
 };
