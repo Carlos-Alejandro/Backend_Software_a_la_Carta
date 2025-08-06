@@ -15,8 +15,12 @@ const options = {
         description: 'Servidor local',
       },
     ],
+    components: {
+      schemas: require('./components/schemas'),
+      responses: require('./components/responses'),
+    },
   },
-  apis: ['./src/routes/*.js'], // Escanea anotaciones en tus rutas
+  apis: ['./src/routes/*.js'], // escanear tus rutas
 };
 
 const swaggerSpec = swaggerJsDoc(options);

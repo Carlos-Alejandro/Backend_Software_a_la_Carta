@@ -79,7 +79,11 @@ const authController = require('../controllers/auth.controller');
  *       201:
  *         description: Usuario registrado exitosamente
  *       400:
- *         description: Error de validación
+ *         $ref: '#/components/responses/ValidationError'
+ *       409:
+ *         $ref: '#/components/responses/DuplicatedResource'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.post('/register', authController.register);
 
@@ -102,8 +106,12 @@ router.post('/register', authController.register);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/AuthResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
  *       401:
- *         description: Credenciales inválidas
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.post('/login', authController.login);
 
