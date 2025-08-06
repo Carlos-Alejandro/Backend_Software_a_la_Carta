@@ -33,5 +33,18 @@ userSchema.methods.comparePassword = function (password) {
   return bcrypt.compare(password, this.passwordHash);
 };
 
+// ✅ Ocultar campos sensibles en todas las respuestas JSON
+userSchema.set('toJSON', {
+  transform: function (doc, ret) {
+    delete ret.__v;
+    delete ret.passwordHash;
+    delete ret.createdAt;
+    delete ret.updatedAt;
+    return ret;
+  }
+});
+
+
 const User = mongoose.model('User', userSchema);
 module.exports = User;
+

@@ -1,29 +1,57 @@
 const authService = require('../services/auth.service');
+const { successResponse, errorResponse } = require('../utils/response');
 
 const register = async (req, res) => {
   try {
-    // ✅ Aceptamos 'role', y si no lo mandan, se asigna 'user' por defecto
     const { name, email, password, role = 'user' } = req.body;
 
-    // 🔐 Validación para evitar roles no válidos
     if (role !== 'user' && role !== 'admin') {
-      return res.status(400).json({ message: 'Rol inválido. Solo se permite "user" o "admin"' });
+      return errorResponse(res, {
+        message: 'Rol inválido. Solo se permite "user" o "admin"',
+        statusCode: 400,
+      });
     }
 
     const user = await authService.registerUser(name, email, password, role);
-    res.status(201).json({ message: 'Usuario registrado correctamente', user });
+
+    // Elimina campos innecesarios de la respuesta
+    const sanitizedUser = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
+
+    return successResponse(res, {
+      message: 'Usuario registrado correctamente',
+      data: sanitizedUser,
+      statusCode: 201,
+    });
+
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    const isDuplicate = error.message.includes('registrado');
+    return errorResponse(res, {
+      message: error.message,
+      statusCode: isDuplicate ? 409 : 400,
+    });
   }
 };
 
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const { token, user } = await authService.loginUser(email, password);
-    res.json({ message: 'Login exitoso', token, user });
+    const { token } = await authService.loginUser(email, password);
+
+    return successResponse(res, {
+      message: 'Login exitoso',
+      data: { token },
+    });
+
   } catch (error) {
-    res.status(401).json({ message: error.message });
+    return errorResponse(res, {
+      message: error.message,
+      statusCode: 401,
+    });
   }
 };
 
