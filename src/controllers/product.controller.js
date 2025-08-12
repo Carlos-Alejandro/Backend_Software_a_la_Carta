@@ -24,6 +24,16 @@ const getProductById = async (req, res) => {
   }
 };
 
+const partialUpdateProduct = async (req, res) => {
+  try {
+    const updated = await productService.partialUpdateProduct(req.params.id, req.body);
+    if (!updated) return errorResponse(res, { message: 'Producto no encontrado', statusCode: 404 });
+    successResponse(res, { message: 'Producto modificado parcialmente', data: sanitizeProduct(updated) });
+  } catch (error) {
+    errorResponse(res, { message: 'Error al modificar producto', error });
+  }
+};
+
 const createProduct = async (req, res) => {
   try {
     const product = await productService.createProduct(req.body);
@@ -66,5 +76,6 @@ module.exports = {
   getProductById,
   createProduct,
   updateProduct,
+  partialUpdateProduct,
   deleteProduct,
 };

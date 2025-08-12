@@ -47,6 +47,38 @@ router.get('/:id', productController.getProductById);
 
 /**
  * @swagger
+ * /api/products/{id}:
+ *   patch:
+ *     summary: Modificar parcialmente un producto (solo admin)
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/PatchProduct'
+ *     responses:
+ *       200:
+ *         description: Producto modificado parcialmente
+ *       400:
+ *         description: Error de validación o campos incorrectos
+ *       404:
+ *         description: Producto no encontrado
+ */
+router.patch('/:id', auth, isAdmin, productController.partialUpdateProduct);
+
+
+
+/**
+ * @swagger
  * /api/products:
  *   post:
  *     summary: Crear un nuevo producto (solo admin)

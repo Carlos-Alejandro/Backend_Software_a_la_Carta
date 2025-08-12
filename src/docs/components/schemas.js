@@ -39,7 +39,7 @@ module.exports = {
     type: 'object',
     required: ['name', 'price', 'stock', 'categoryId'],
     properties: {
-      name: { type: 'string', example: 'Laptop HP 14"' },
+      name: { type: 'string', example: 'Laptop HP 14' },
       description: { type: 'string', example: 'Laptop con 8GB RAM y SSD de 512GB' },
       price: { type: 'number', example: 12999.99 },
       stock: { type: 'integer', example: 5 },
@@ -56,4 +56,14 @@ module.exports = {
       description: { type: 'string', example: 'Portátiles, notebooks y ultrabooks' },
     },
   },
+
+  PatchProduct: {
+  type: 'object',
+  properties: {
+    price: { type: 'number', example: 10999.99 },
+    stock: { type: 'integer', example: 10 },
+  },
+  description: 'Solo se pueden modificar los campos price y stock',
+},
+
 };

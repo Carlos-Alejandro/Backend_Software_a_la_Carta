@@ -24,10 +24,15 @@ const deleteProduct = async (id) => {
   return await Product.findByIdAndDelete(id);
 };
 
+const partialUpdateProduct = async (id, fieldsToUpdate) => {
+  return await Product.findByIdAndUpdate(id, fieldsToUpdate, { new: true });
+};
+
 module.exports = {
   getAllProducts,
   getProductById,
   createProduct,
   updateProduct,
+  partialUpdateProduct,
   deleteProduct,
 };
