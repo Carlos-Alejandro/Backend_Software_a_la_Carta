@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middlewares/auth.middleware');
 const validate = require('../middlewares/validate.middleware');
-const { addItemValidator, updateItemValidator, removeItemValidator } = require('../middlewares/validators/cart.validator');
+const {addItemValidator, updateItemValidator, removeItemValidator,
+} = require('../middlewares/validators/cart.validator');
 const cartController = require('../controllers/cart.controller');
 
 /**
@@ -71,11 +72,9 @@ const cartController = require('../controllers/cart.controller');
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Carrito del usuario
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/CartResponse'
+ *         $ref: '#/components/responses/SuccessOK'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.get('/', auth, cartController.getMyCart);
 
@@ -95,11 +94,15 @@ router.get('/', auth, cartController.getMyCart);
  *             $ref: '#/components/schemas/AddToCartRequest'
  *     responses:
  *       201:
- *         description: Ítem agregado
+ *         $ref: '#/components/responses/Created'
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'          # producto no encontrado
+ *       409:
+ *         $ref: '#/components/responses/ConflictError'     # stock insuficiente
  */
 router.post('/items', auth, addItemValidator, validate, cartController.addItem);
 
@@ -125,11 +128,15 @@ router.post('/items', auth, addItemValidator, validate, cartController.addItem);
  *             $ref: '#/components/schemas/UpdateCartItemRequest'
  *     responses:
  *       200:
- *         description: Ítem actualizado
+ *         $ref: '#/components/responses/SuccessOK'
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'          # ítem no existe / producto no encontrado
+ *       409:
+ *         $ref: '#/components/responses/ConflictError'     # stock insuficiente
  */
 router.put('/items/:productId', auth, updateItemValidator, validate, cartController.updateItem);
 
@@ -149,7 +156,7 @@ router.put('/items/:productId', auth, updateItemValidator, validate, cartControl
  *           type: string
  *     responses:
  *       200:
- *         description: Ítem eliminado
+ *         $ref: '#/components/responses/SuccessOK'
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
@@ -165,7 +172,9 @@ router.delete('/items/:productId', auth, removeItemValidator, validate, cartCont
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Carrito vacío
+ *         $ref: '#/components/responses/SuccessOK'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.delete('/', auth, cartController.clear);
 

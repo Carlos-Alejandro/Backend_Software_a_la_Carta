@@ -119,7 +119,7 @@ ApiSuccess: {
     success: { type: 'boolean', example: true },
     statusCode: { type: 'integer', example: 200 },
     message: { type: 'string', example: 'Operación exitosa' },
-    data: { type: 'object', example: { /* payload */ } },
+    data: { type: 'object', example: {} },
   },
 },
 

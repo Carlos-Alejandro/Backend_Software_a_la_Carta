@@ -1,17 +1,15 @@
 const { validationResult } = require('express-validator');
+const { errorResponse } = require('../utils/response');
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      statusCode: 400,
+    return errorResponse(res, {
       message: 'Errores de validación',
-      errors: errors.array(),
+      statusCode: 400,
+      error: errors.array(),  // ✅ consistente con ApiError
     });
   }
-
   next();
 };
 

@@ -23,6 +23,11 @@ module.exports = {
       },
     },
   },
+  ConflictError: {
+    description: 'Conflicto de negocio (p. ej. stock insuficiente)',
+    content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } },
+  },
+
   UnauthorizedError: {
     description: 'No autorizado. Token inválido o ausente.',
     content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } },

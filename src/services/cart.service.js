@@ -113,5 +113,4 @@ module.exports = {
   updateItem,
   removeItem,
   clearCart,
-  HttpError, // exportado por si quieres reutilizarlo
 };
