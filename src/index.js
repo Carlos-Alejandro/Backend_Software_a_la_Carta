@@ -6,6 +6,8 @@ const authRoutes = require('./routes/auth.routes');
 const swaggerDocs = require('./docs/swagger'); // Importa la configuración de Swagger
 const categoryRoutes = require('./routes/category.routes');
 const productRoutes = require('./routes/product.routes');
+const cartRoutes = require('./routes/cart.routes');
+const errorHandler = require('./middlewares/error.middleware');
 
 dotenv.config(); // ✅ primero cargamos variables de entorno
 connectDB();     // ✅ conectamos a Mongo
@@ -23,7 +25,10 @@ app.use(express.json());   // ✅ para recibir JSON
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/cart', cartRoutes);
 
+// Middleware de errores
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

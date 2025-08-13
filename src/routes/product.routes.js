@@ -147,7 +147,7 @@ router.put('/:id', auth, isAdmin, validateProduct, validate, productController.u
  *           type: string
  *     responses:
  *       200:
- *         description: Producto eliminado
+ *         $ref: '#/components/responses/SuccessOK'
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */

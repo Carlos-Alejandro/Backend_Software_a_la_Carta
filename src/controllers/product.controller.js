@@ -65,11 +65,16 @@ const deleteProduct = async (req, res) => {
     if (!deleted) {
       return errorResponse(res, { message: 'Producto no encontrado', statusCode: 404 });
     }
-    successResponse(res, { message: 'Producto eliminado' });
+    // ✅ incluye data para contrato uniforme
+    return successResponse(res, {
+      message: 'Producto eliminado',
+      data: { _id: req.params.id },
+    });
   } catch (error) {
-    errorResponse(res, { message: 'Error al eliminar producto', error });
+    return errorResponse(res, { message: 'Error al eliminar producto', error });
   }
 };
+
 
 module.exports = {
   getAllProducts,

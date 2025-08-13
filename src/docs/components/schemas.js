@@ -58,12 +58,80 @@ module.exports = {
   },
 
   PatchProduct: {
+    type: 'object',
+    properties: {
+      price: { type: 'number', example: 10999.99 },
+      stock: { type: 'integer', example: 10 },
+    },
+    description: 'Solo se pueden modificar los campos price y stock',
+  },
+
+  // ====== CARRITO ======
+  AddToCartRequest: {
+    type: 'object',
+    required: ['productId', 'quantity'],
+    properties: {
+      productId: { type: 'string', example: '64d989bdfc13ae1739000025' },
+      quantity: { type: 'integer', minimum: 1, example: 2 },
+    },
+  },
+
+  UpdateCartItemRequest: {
+    type: 'object',
+    required: ['quantity'],
+    properties: {
+      quantity: { type: 'integer', minimum: 0, example: 3 },
+    },
+  },
+
+  CartItemResponse: {
+    type: 'object',
+    properties: {
+      product: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string' },
+          name: { type: 'string' },
+          price: { type: 'number' },
+          imageUrl: { type: 'string' },
+          categoryId: { type: 'string' },
+        },
+      },
+      quantity: { type: 'integer' },
+      subtotal: { type: 'number' },
+    },
+  },
+
+  CartResponse: {
+    type: 'object',
+    properties: {
+      items: {
+        type: 'array',
+        items: { $ref: '#/components/schemas/CartItemResponse' },
+      },
+      total: { type: 'number' },
+    },
+  },
+  // Respuesta de éxito homogénea
+ApiSuccess: {
   type: 'object',
   properties: {
-    price: { type: 'number', example: 10999.99 },
-    stock: { type: 'integer', example: 10 },
+    success: { type: 'boolean', example: true },
+    statusCode: { type: 'integer', example: 200 },
+    message: { type: 'string', example: 'Operación exitosa' },
+    data: { type: 'object', example: { /* payload */ } },
   },
-  description: 'Solo se pueden modificar los campos price y stock',
+},
+
+// Respuesta de error homogénea
+ApiError: {
+  type: 'object',
+  properties: {
+    success: { type: 'boolean', example: false },
+    statusCode: { type: 'integer', example: 400 },
+    message: { type: 'string', example: 'Datos de entrada no válidos' },
+    error: { type: 'object', nullable: true, example: null },
+  },
 },
 
 };

@@ -25,7 +25,7 @@ const deleteProduct = async (id) => {
 };
 
 const partialUpdateProduct = async (id, fieldsToUpdate) => {
-  return await Product.findByIdAndUpdate(id, fieldsToUpdate, { new: true });
+  return await Product.findByIdAndUpdate(id, fieldsToUpdate, { new: true, runValidators: true });
 };
 
 module.exports = {
