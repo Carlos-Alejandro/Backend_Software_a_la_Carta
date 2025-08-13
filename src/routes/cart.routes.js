@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middlewares/auth.middleware');
 const validate = require('../middlewares/validate.middleware');
-const {addItemValidator, updateItemValidator, removeItemValidator,
+const { addItemValidator, updateItemValidator, removeItemValidator,
 } = require('../middlewares/validators/cart.validator');
 const cartController = require('../controllers/cart.controller');
 
@@ -94,7 +94,16 @@ router.get('/', auth, cartController.getMyCart);
  *             $ref: '#/components/schemas/AddToCartRequest'
  *     responses:
  *       201:
- *         $ref: '#/components/responses/Created'
+ *         description: Ítem agregado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccess'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/CartMutationResponse'
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       401:
@@ -128,7 +137,16 @@ router.post('/items', auth, addItemValidator, validate, cartController.addItem);
  *             $ref: '#/components/schemas/UpdateCartItemRequest'
  *     responses:
  *       200:
- *         $ref: '#/components/responses/SuccessOK'
+ *         description: Ítem actualizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccess'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/CartMutationResponse'
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       401:
@@ -156,7 +174,16 @@ router.put('/items/:productId', auth, updateItemValidator, validate, cartControl
  *           type: string
  *     responses:
  *       200:
- *         $ref: '#/components/responses/SuccessOK'
+ *         description: Ítem eliminado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccess'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/CartMutationResponse'
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
@@ -172,7 +199,16 @@ router.delete('/items/:productId', auth, removeItemValidator, validate, cartCont
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         $ref: '#/components/responses/SuccessOK'
+ *         description: Carrito vacío
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccess'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/CartMutationResponse'
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */

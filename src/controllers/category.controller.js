@@ -1,65 +1,45 @@
 const categoryService = require('../services/category.service');
-const { successResponse, errorResponse } = require('../utils/response');
+const { successResponse } = require('../utils/response');
+const { HttpError } = require('../utils/httpError');
 const sanitizeCategory = require('../helpers/sanitizeCategory');
+const asyncHandler = require('../middlewares/asyncHandler');
 
-const getAllCategories = async (req, res) => {
-  try {
-    const categories = await categoryService.getAllCategories();
-    const sanitized = categories.map(c => sanitizeCategory(c));
-    successResponse(res, { message: 'Categorías obtenidas', data: sanitized });
-  } catch (error) {
-    errorResponse(res, { message: 'Error al obtener categorías', error });
-  }
-};
+const getAllCategories = asyncHandler(async (req, res) => {
+  const categories = await categoryService.getAllCategories();
+  const data = categories.map(sanitizeCategory);
+  return successResponse(res, { message: 'Categorías obtenidas', data });
+});
 
-const getCategoryById = async (req, res) => {
-  try {
-    const category = await categoryService.getCategoryById(req.params.id);
-    if (!category) {
-      return errorResponse(res, { message: 'Categoría no encontrada', statusCode: 404 });
-    }
-    successResponse(res, { message: 'Categoría encontrada', data: sanitizeCategory(category) });
-  } catch (error) {
-    errorResponse(res, { message: 'Error al buscar categoría', error });
-  }
-};
+const getCategoryById = asyncHandler(async (req, res, next) => {
+  const category = await categoryService.getCategoryById(req.params.id);
+  if (!category) return next(new HttpError('Categoría no encontrada', 404));
+  return successResponse(res, { message: 'Categoría encontrada', data: sanitizeCategory(category) });
+});
 
-const createCategory = async (req, res) => {
-  try {
-    const category = await categoryService.createCategory(req.body);
-    successResponse(res, {
-      message: 'Categoría creada',
-      data: sanitizeCategory(category),
-      statusCode: 201,
-    });
-  } catch (error) {
-    errorResponse(res, { message: 'Error al crear categoría', error });
-  }
-};
+const createCategory = asyncHandler(async (req, res) => {
+  const category = await categoryService.createCategory(req.body); // << crear en service
+  const doc = category?.toObject ? category.toObject() : category; // doc -> POJO si aplica
+  return successResponse(res, {
+    message: 'Categoría creada',
+    data: sanitizeCategory(doc),
+    statusCode: 201,
+  });
+});
 
-const updateCategory = async (req, res) => {
-  try {
-    const category = await categoryService.updateCategory(req.params.id, req.body);
-    if (!category) {
-      return errorResponse(res, { message: 'Categoría no encontrada', statusCode: 404 });
-    }
-    successResponse(res, { message: 'Categoría actualizada', data: sanitizeCategory(category) });
-  } catch (error) {
-    errorResponse(res, { message: 'Error al actualizar categoría', error });
-  }
-};
+const updateCategory = asyncHandler(async (req, res, next) => {
+  const category = await categoryService.updateCategory(req.params.id, req.body);
+  if (!category) return next(new HttpError('Categoría no encontrada', 404));
+  return successResponse(res, { message: 'Categoría actualizada', data: sanitizeCategory(category) });
+});
 
-const deleteCategory = async (req, res) => {
-  try {
-    const deleted = await categoryService.deleteCategory(req.params.id);
-    if (!deleted) {
-      return errorResponse(res, { message: 'Categoría no encontrada', statusCode: 404 });
-    }
-    successResponse(res, { message: 'Categoría eliminada' });
-  } catch (error) {
-    errorResponse(res, { message: 'Error al eliminar categoría', error });
-  }
-};
+const deleteCategory = asyncHandler(async (req, res, next) => {
+  const deleted = await categoryService.deleteCategory(req.params.id);
+  if (!deleted) return next(new HttpError('Categoría no encontrada', 404));
+  return successResponse(res, {
+    message: 'Categoría eliminada',
+    data: { _id: req.params.id },
+  });
+});
 
 module.exports = {
   getAllCategories,

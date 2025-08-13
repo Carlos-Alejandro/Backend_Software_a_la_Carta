@@ -68,6 +68,8 @@ router.get('/:id', categoryController.getCategoryById);
  *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
+ *       409:
+ *         $ref: '#/components/responses/ConflictError'
  */
 router.post('/', auth, isAdmin, validateCategory, validate, categoryController.createCategory);
 

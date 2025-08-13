@@ -1,5 +1,5 @@
+// src/middlewares/error.middleware.js
 const { errorResponse } = require('../utils/response');
-const { HttpError } = require('../utils/httpError');
 // const logger = require('../utils/logger'); // cuando lo implementes
 
 module.exports = (err, req, res, next) => {
@@ -8,14 +8,20 @@ module.exports = (err, req, res, next) => {
   let message = err.message || 'Error del servidor';
 
   // 2) Mapeos comunes
-  // Mongoose: validación de schema
+
+  // ID inválido / cast de Mongoose (ObjectId mal formado, etc.)
+  if (err.name === 'CastError') {
+    status = 400;
+    message = 'Parámetro inválido';
+  }
+
+  // Validación de schema (Mongoose)
   if (err.name === 'ValidationError') {
     status = 400;
     message = 'Errores de validación en el modelo';
   }
 
-  // Mongoose/Mongo: clave duplicada
-  // err.code === 11000 => duplicado (p.ej. email único)
+  // Clave única duplicada (Mongo/Mongoose)
   if (err.code === 11000) {
     status = 409;
     const field = Object.keys(err.keyValue || {})[0];
@@ -24,7 +30,7 @@ module.exports = (err, req, res, next) => {
       : 'Recurso duplicado';
   }
 
-  // JWT errors (si en algún middleware usas jsonwebtoken y tiras estos)
+  // JWT
   if (err.name === 'JsonWebTokenError') {
     status = 401;
     message = 'Token inválido';
@@ -34,7 +40,7 @@ module.exports = (err, req, res, next) => {
     message = 'Token expirado';
   }
 
-  // 3) Logging (amplíalo cuando tengas logger)
+  // 3) Logging (cuando tengas logger)
   // logger.error({ err, status, path: req.originalUrl, user: req.user?.id });
 
   // 4) Respuesta homogénea
