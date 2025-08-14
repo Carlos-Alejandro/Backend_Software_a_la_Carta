@@ -1,4 +1,5 @@
 module.exports = {
+  // ===== AUTH =====
   RegisterRequest: {
     type: 'object',
     required: ['name', 'email', 'password'],
@@ -35,6 +36,7 @@ module.exports = {
     },
   },
 
+  // ===== PRODUCTOS & CATEGORÍAS =====
   Product: {
     type: 'object',
     required: ['name', 'price', 'stock', 'categoryId'],
@@ -66,7 +68,7 @@ module.exports = {
     description: 'Solo se pueden modificar los campos price y stock',
   },
 
-  // ====== CARRITO ======
+  // ===== CARRITO =====
   AddToCartRequest: {
     type: 'object',
     required: ['productId', 'quantity'],
@@ -112,7 +114,8 @@ module.exports = {
       total: { type: 'number' },
     },
   },
-  // Respuesta de éxito homogénea
+
+  // ===== RESPUESTAS HOMOGÉNEAS =====
   ApiSuccess: {
     type: 'object',
     required: ['success', 'statusCode', 'message'],
@@ -120,12 +123,11 @@ module.exports = {
       success: { type: 'boolean', example: true },
       statusCode: { type: 'integer', example: 200 },
       message: { type: 'string', example: 'Operación exitosa' },
-      // `data` puede ser objeto, array, string, etc.; lo dejamos abierto
+      // `data` es flexible (objeto/array/string/etc.)
       data: { nullable: true },
     },
   },
 
-  // Respuesta de error homogénea (genérica, sin ejemplos fijos)
   ApiError: {
     type: 'object',
     required: ['success', 'statusCode', 'message'],
@@ -139,10 +141,7 @@ module.exports = {
         type: 'string',
         description: 'Mensaje de error en lenguaje natural',
       },
-      // `error` puede ser:
-      // - null
-      // - un objeto con info extra (p.ej. { stack } en dev)
-      // - un array de errores de validación (express-validator)
+      // Puede ser null, objeto libre o lista de validaciones (express-validator)
       error: {
         nullable: true,
         oneOf: [
@@ -165,16 +164,16 @@ module.exports = {
     },
   },
 
-
   // ===== Cart mutation payloads =====
   CartTotals: {
     type: 'object',
     properties: {
       lines: { type: 'integer', example: 2 },
       items: { type: 'integer', example: 3 },
-      total: { type: 'number', example: 25999.98 }
-    }
+      total: { type: 'number', example: 25999.98 },
+    },
   },
+
   CartChangedItem: {
     type: 'object',
     nullable: true,
@@ -182,18 +181,109 @@ module.exports = {
       productId: { type: 'string', example: '66a1b2c3d4e5f6a7b8c9d0e1' },
       quantity: { type: 'integer', example: 2 },
       unitPrice: { type: 'number', example: 12999.99 },
-      subtotal: { type: 'number', example: 25999.98 }
-    }
+      subtotal: { type: 'number', example: 25999.98 },
+    },
   },
+
   CartMutationResponse: {
     type: 'object',
     properties: {
       cartId: { type: 'string', example: '66b0aa0aa0aa0aa0aa0aa0aa' },
-      action: { type: 'string', enum: ['added','updated','removed','cleared'], example: 'added' },
+      action: { type: 'string', enum: ['added', 'updated', 'removed', 'cleared'], example: 'added' },
       changedItem: { $ref: '#/components/schemas/CartChangedItem' },
-      totals: { $ref: '#/components/schemas/CartTotals' }
-    }
+      totals: { $ref: '#/components/schemas/CartTotals' },
+    },
   },
 
+  // ===== ORDERS / STRIPE =====
+  OrderStatus: {
+    type: 'string',
+    enum: ['pending', 'requires_payment', 'paid', 'failed', 'canceled'],
+    example: 'requires_payment',
+  },
 
+  OrderItem: {
+    type: 'object',
+    required: ['productId', 'name', 'price', 'quantity'],
+    properties: {
+      productId: { type: 'string', example: '66a1b2c3d4e5f6a7b8c9d0e1' },
+      name: { type: 'string', example: 'Laptop HP 14' },
+      price: { type: 'number', example: 12999.99 },
+      quantity: { type: 'integer', example: 2, minimum: 1 },
+    },
+  },
+
+  Order: {
+    type: 'object',
+    properties: {
+      _id: { type: 'string', example: '66b0bb0bb0bb0bb0bb0bb0bb' },
+      userId: { type: 'string', example: '66b0cc0cc0cc0cc0cc0cc0cc' },
+      items: { type: 'array', items: { $ref: '#/components/schemas/OrderItem' } },
+      total: { type: 'number', example: 25999.98 },
+      status: { $ref: '#/components/schemas/OrderStatus' },
+      paymentIntentId: { type: 'string', example: 'pi_3OzAbcDefGhIjKlMn0' },
+      currency: { type: 'string', example: 'mxn' },
+    },
+  },
+
+  CheckoutData: {
+    type: 'object',
+    properties: {
+      orderId: { type: 'string', example: '66b0bb0bb0bb0bb0bb0bb0bb' },
+      clientSecret: { type: 'string', example: 'pi_3OzAbc..._secret_abc123' },
+      total: { type: 'number', example: 25999.98 },
+      currency: { type: 'string', example: 'mxn' },
+    },
+  },
+
+  ConfirmPaymentRequest: {
+    type: 'object',
+    required: ['orderId', 'paymentIntentId'],
+    properties: {
+      orderId: { type: 'string', example: '66b0bb0bb0bb0bb0bb0bb0bb' },
+      paymentIntentId: { type: 'string', example: 'pi_3OzAbcDefGhIjKlMn0' },
+    },
+  },
+
+  OrderArray: {
+    type: 'array',
+    items: { $ref: '#/components/schemas/Order' },
+  },
+
+  // ===== Wrappers de éxito específicos (ApiSuccess + data tipada) =====
+  CheckoutSuccess: {
+    allOf: [
+      { $ref: '#/components/schemas/ApiSuccess' },
+      {
+        type: 'object',
+        properties: {
+          data: { $ref: '#/components/schemas/CheckoutData' },
+        },
+      },
+    ],
+  },
+
+  ConfirmPaymentSuccess: {
+    allOf: [
+      { $ref: '#/components/schemas/ApiSuccess' },
+      {
+        type: 'object',
+        properties: {
+          data: { $ref: '#/components/schemas/Order' },
+        },
+      },
+    ],
+  },
+
+  MyOrdersSuccess: {
+    allOf: [
+      { $ref: '#/components/schemas/ApiSuccess' },
+      {
+        type: 'object',
+        properties: {
+          data: { $ref: '#/components/schemas/OrderArray' },
+        },
+      },
+    ],
+  },
 };

@@ -1,37 +1,37 @@
+// src/index.js (al inicio del archivo)
+require('dotenv').config();  // ✅ primero, antes de TODO
+
 const express = require('express');
-const dotenv = require('dotenv');
-const cors = require('cors'); // ✅ buena práctica
+const cors = require('cors');
 const connectDB = require('./config/db');
+
 const authRoutes = require('./routes/auth.routes');
-const swaggerDocs = require('./docs/swagger'); // Importa la configuración de Swagger
+const swaggerDocs = require('./docs/swagger');
 const categoryRoutes = require('./routes/category.routes');
 const productRoutes = require('./routes/product.routes');
 const cartRoutes = require('./routes/cart.routes');
+const orderRoutes = require('./routes/order.routes');
 const errorHandler = require('./middlewares/error.middleware');
 
-dotenv.config(); // ✅ primero cargamos variables de entorno
-connectDB();     // ✅ conectamos a Mongo
+// Conectar DB (ya con envs cargadas)
+connectDB();
 
 const app = express();
+swaggerDocs(app);
 
-// Swagger Docs
-swaggerDocs(app); // ✅ habilita la documentación de Swagger
+app.use(cors());
+app.use(express.json());
 
-
-app.use(cors());           // ✅ habilita CORS (útil para frontend)
-app.use(express.json());   // ✅ para recibir JSON
-
-// Rutas
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/orders', orderRoutes);
 
-// Middleware de errores
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-  console.log(`📚 Documentación Swagger disponible en http://localhost:${PORT}/api/docs`);
+  console.log(`📚 Swagger en http://localhost:${PORT}/api/docs`);
 });

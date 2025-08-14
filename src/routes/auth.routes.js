@@ -85,7 +85,7 @@ const authController = require('../controllers/auth.controller');
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       409:
- *         $ref: '#/components/responses/DuplicatedResource'
+ *         $ref: '#/components/responses/ConflictError'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
