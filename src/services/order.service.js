@@ -32,6 +32,7 @@ async function buildOrderDraftFromCart(userId) {
     };
   });
 
+  // Mantengo tu cálculo y redondeo tal como lo tenías
   const total = items.reduce((acc, it) => acc + it.price * it.quantity, 0);
   const totalRounded = Number(total.toFixed(2));
   if (totalRounded <= 0) throw new HttpError('El total de la orden debe ser mayor a 0', 400);
@@ -43,7 +44,7 @@ async function createCheckout(userId) {
   const stripe = getStripe();
   const draft = await buildOrderDraftFromCart(userId);
 
-  // 1) Crear Order "requiere pago"
+  // 1) Crear Order "requires_payment"
   const order = await Order.create({
     userId,
     items: draft.items,
@@ -53,11 +54,15 @@ async function createCheckout(userId) {
   });
 
   // 2) Crear PaymentIntent en Stripe
+  // IMPORTANTE: usamos "draft.total" como ya lo acordamos (total en centavos)
   const paymentIntent = await stripe.paymentIntents.create({
-    amount: Math.round(draft.total * 100), // centavos
+    amount: draft.total,                     // ← total YA en centavos
     currency: CURRENCY,
     automatic_payment_methods: { enabled: true },
-    metadata: { orderId: String(order._id), userId: String(userId) },
+    metadata: {
+      orderId: order._id.toString(),
+      userId: userId.toString(),
+    },
   });
 
   order.paymentIntentId = paymentIntent.id;
@@ -79,12 +84,21 @@ async function confirmAndFinalize(userId, { orderId, paymentIntentId }) {
 
   // Valida el PaymentIntent
   const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+
   if (pi.status !== 'succeeded') {
     throw new HttpError(`El pago aún no está completado (status=${pi.status})`, 400);
   }
-  if (pi.amount !== Math.round(order.total * 100) || pi.currency !== CURRENCY) {
-    throw new HttpError('Monto o moneda del PaymentIntent no coincide con la orden', 400);
+
+  // ✅ Validación de monto y moneda en centavos (coherente con checkout)
+  const expected = order.total; // order.total está en centavos (según lo que acordamos)
+  if (pi.amount !== expected) {
+    throw new HttpError(`Monto no coincide (esperado ${expected}, Stripe ${pi.amount})`, 400);
   }
+  if ((pi.currency || '').toLowerCase() !== CURRENCY) {
+    throw new HttpError('Moneda no coincide', 400);
+  }
+
+  // Metadatos esperados
   if (pi.metadata?.orderId !== String(order._id) || pi.metadata?.userId !== String(userId)) {
     throw new HttpError('Metadatos del PaymentIntent no corresponden a la orden/usuario', 400);
   }

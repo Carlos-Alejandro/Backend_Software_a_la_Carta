@@ -7,7 +7,7 @@ const checkout = async (req, res) => {
     const { order, clientSecret } = await orderService.createCheckout(req.user.id);
     return successResponse(res, {
       message: 'Checkout creado',
-      data: { orderId: String(order._id), clientSecret, total: order.total, currency: order.currency },
+      data: { orderId: String(order._id), paymentIntentId: order.paymentIntentId,clientSecret, total: order.total, currency: order.currency },
       statusCode: 201,
     });
   } catch (error) {
