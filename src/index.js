@@ -1,41 +1,57 @@
-// src/index.js (al inicio del archivo)
-require('dotenv').config();  // ✅ primero, antes de TODO
+// src/index.js
+require('dotenv').config(); // ✅ antes de TODO
 
 const express = require('express');
-const cors = require('cors');
 const connectDB = require('./config/db');
 
 const authRoutes = require('./routes/auth.routes');
-const swaggerDocs = require('./docs/swagger');
 const categoryRoutes = require('./routes/category.routes');
 const productRoutes = require('./routes/product.routes');
 const cartRoutes = require('./routes/cart.routes');
 const orderRoutes = require('./routes/order.routes');
+const webhookRoutes = require('./routes/webhook.routes'); // Ruta para Stripe
+
+const swaggerDocs = require('./docs/swagger'); // wrapper de swagger
+const { configureSecurity } = require('./config/security');
 const errorHandler = require('./middlewares/error.middleware');
 
-// Conectar DB (ya con envs cargadas)
+// Conectar DB (ya con envs)
 connectDB();
 
+// Inicializar app
 const app = express();
-swaggerDocs(app);
 
-app.use(cors({
-  origin: ['http://localhost:5173'], // Vite
-  credentials: true
-}));
+// Seguridad (helmet, CORS por whitelist, rate limits)
+configureSecurity(app);
 
-app.use(express.json());
+// Webhooks (Stripe) 
+app.use('/api/webhooks', webhookRoutes);
 
+// Body parser (ajusta límite si subes archivos)
+app.use(express.json({ limit: '1mb' }));
+
+// Swagger: solo en dev o cuando lo habilites por ENV
+if (process.env.NODE_ENV !== 'production' || process.env.SWAGGER_ENABLED === 'true') {
+  swaggerDocs(app);
+}
+
+// Rutas
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 
+// Error handler al final
 app.use(errorHandler);
 
+// Inicializar servidor 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-  console.log(`📚 Swagger en http://localhost:${PORT}/api/docs`);
+  if (process.env.NODE_ENV !== 'production' || process.env.SWAGGER_ENABLED === 'true') {
+    console.log(`📚 Swagger en http://localhost:${PORT}/api/docs`);
+  } else {
+    console.log('📚 Swagger deshabilitado en producción');
+  }
 });

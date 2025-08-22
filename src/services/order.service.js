@@ -8,6 +8,9 @@ const { HttpError } = require('../utils/httpError');
 
 const CURRENCY = (process.env.CURRENCY || 'mxn').toLowerCase();
 
+/** Convierte montos con decimales (pesos) a centavos (enteros) para Stripe */
+const toCents = (n) => Math.round(Number(n) * 100);
+
 async function buildOrderDraftFromCart(userId) {
   const cart = await Cart.findOne({ userId })
     .populate('items.productId', 'name price stock');
@@ -32,7 +35,7 @@ async function buildOrderDraftFromCart(userId) {
     };
   });
 
-  // Mantengo tu cálculo y redondeo tal como lo tenías
+  // Mantengo tu cálculo y redondeo tal como lo tenías (total en pesos)
   const total = items.reduce((acc, it) => acc + it.price * it.quantity, 0);
   const totalRounded = Number(total.toFixed(2));
   if (totalRounded <= 0) throw new HttpError('El total de la orden debe ser mayor a 0', 400);
@@ -44,7 +47,7 @@ async function createCheckout(userId) {
   const stripe = getStripe();
   const draft = await buildOrderDraftFromCart(userId);
 
-  // 1) Crear Order "requires_payment"
+  // 1) Crear Order "requires_payment" (guardamos total en pesos)
   const order = await Order.create({
     userId,
     items: draft.items,
@@ -53,10 +56,10 @@ async function createCheckout(userId) {
     currency: CURRENCY,
   });
 
-  // 2) Crear PaymentIntent en Stripe
-  // IMPORTANTE: usamos "draft.total" como ya lo acordamos (total en centavos)
+  // 2) Crear PaymentIntent en Stripe (Stripe requiere centavos)
+  const amountInCents = toCents(draft.total); // ← convierte pesos a centavos (entero)
   const paymentIntent = await stripe.paymentIntents.create({
-    amount: draft.total,                     // ← total YA en centavos
+    amount: amountInCents,                 // ← entero en centavos
     currency: CURRENCY,
     automatic_payment_methods: { enabled: true },
     metadata: {
@@ -90,7 +93,8 @@ async function confirmAndFinalize(userId, { orderId, paymentIntentId }) {
   }
 
   // ✅ Validación de monto y moneda en centavos (coherente con checkout)
-  const expected = order.total; // order.total está en centavos (según lo que acordamos)
+  // order.total está en pesos → conviértelo a centavos para comparar con Stripe
+  const expected = toCents(order.total);
   if (pi.amount !== expected) {
     throw new HttpError(`Monto no coincide (esperado ${expected}, Stripe ${pi.amount})`, 400);
   }
