@@ -54,6 +54,12 @@ if (process.env.NODE_ENV !== 'production' || process.env.SWAGGER_ENABLED === 'tr
   swaggerDocs(app);
 }
 
+if (process.env.NODE_ENV !== 'production') {
+  const devRoutes = require('./routes/_dev.routes');
+  app.use('/api/_dev', devRoutes);
+}
+
+
 // Rutas de negocio
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
