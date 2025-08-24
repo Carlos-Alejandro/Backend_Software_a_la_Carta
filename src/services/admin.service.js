@@ -1,8 +1,11 @@
 // src/services/admin.service.js
+const mongoose = require('mongoose');
 const User = require('../models/user.model');
 const Order = require('../models/order.model');
 const Product = require('../models/product.model');
-const mongoose = require('mongoose');
+
+// Transiciones permitidas (según tu esquema actual)
+const ALLOWED = ['pending', 'requires_payment', 'paid', 'failed', 'canceled'];
 
 function toInt(n, def) {
   const x = parseInt(n, 10);
@@ -18,21 +21,32 @@ async function listUsers({ page = 1, limit = 10, q = '', role }) {
   }
   const p = toInt(page, 1);
   const l = toInt(limit, 10);
+
   const [items, total] = await Promise.all([
-    User.find(filters).select('_id name email role createdAt').sort({ createdAt: -1 }).skip((p - 1) * l).limit(l),
+    User.find(filters)
+      .select('_id name email role')         // no createdAt
+      .sort({ createdAt: -1 })
+      .skip((p - 1) * l)
+      .limit(l)
+      .lean(),
     User.countDocuments(filters),
   ]);
+
   return { items, page: p, limit: l, total, pages: Math.ceil(total / l) };
 }
 
 async function updateUserRole(userId, role) {
-  return User.findByIdAndUpdate(userId, { role }, { new: true }).select('_id name email role createdAt');
+  return User.findByIdAndUpdate(userId, { role }, { new: true })
+    .select('_id name email role')
+    .lean();
 }
 
 function buildOrderMatch({ status, from, to, userId }) {
   const $and = [];
   if (status) $and.push({ status });
-  if (userId && mongoose.isValidObjectId(userId)) $and.push({ userId: new mongoose.Types.ObjectId(userId) });
+  if (userId && mongoose.isValidObjectId(userId)) {
+    $and.push({ userId: new mongoose.Types.ObjectId(userId) });
+  }
   if (from || to) {
     const createdAt = {};
     if (from) createdAt.$gte = new Date(from);
@@ -89,27 +103,27 @@ async function getOrderById(id) {
     .lean();
 }
 
-// Transiciones: nos ceñimos a los estados definidos por tu esquema actual
-const ALLOWED = ['pending', 'requires_payment', 'paid', 'failed', 'canceled'];
-
+/**
+ * Actualiza solo el estado sin revalidar todo el documento (desbloquea órdenes legacy
+ * que no tienen totalCents). Mantiene la regla: no pasar de paid -> canceled.
+ */
 async function updateOrderStatus(id, nextStatus) {
   if (!mongoose.isValidObjectId(id)) return null;
   if (!ALLOWED.includes(nextStatus)) return null;
-  // Para esta fase: permitimos cambiar a 'canceled' si no está 'paid'
-  const order = await Order.findById(id);
-  if (!order) return null;
-  if (order.status === 'paid' && nextStatus === 'canceled') {
-    // Reembolsos: fuera de alcance de Fase 5 (requiere Stripe refunds).
-    return null;
-  }
-  order.status = nextStatus;
-  await order.save();
-  return order;
+
+  const current = await Order.findById(id).lean();
+  if (!current) return null;
+  if (current.status === 'paid' && nextStatus === 'canceled') return null;
+
+  const r = await Order.updateOne({ _id: id }, { $set: { status: nextStatus } });
+  if (!r.matchedCount) return null;
+
+  return Order.findById(id).lean();
 }
 
-// Reporte: top productos por unidades y revenue (MXN) a partir de items.unitPriceCents * quantity
+// Reporte: top productos por unidades y revenue (MXN)
 async function reportTopProducts({ from, to, limit = 10 }) {
-  const match = buildOrderMatch({ status: 'paid', from, to }); // contamos ventas pagadas
+  const match = buildOrderMatch({ status: 'paid', from, to }); // solo ventas pagadas
   const pipeline = [
     { $match: match },
     { $unwind: '$items' },
@@ -135,7 +149,8 @@ async function reportTopProducts({ from, to, limit = 10 }) {
     { $unwind: '$product' },
     {
       $project: {
-        productId: '$_id',
+        _id: 0,
+        productId: { $toString: '$_id' }, // <- string directo
         name: '$product.name',
         units: 1,
         revenueCents: 1,

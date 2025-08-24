@@ -20,12 +20,22 @@ const {
 
 // --- Hardening para el área de administración ---
 
-// Rate limit dedicado al panel admin (ajusta a tus necesidades)
+// Rate limit general del panel admin
 const adminLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 min
-  max: 300,                  // 300 req/ventana para admin
+  max: 300,                  // 300 req por ventana
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => req.user?.id || req.ip,
+});
+
+// Rate limit más estricto para acciones sensibles (p.ej. cambiar estado)
+const sensitiveLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 min
+  max: 30,                 // 30 req por ventana
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.id || req.ip,
 });
 
 // Evitar cacheo intermedio/proxy
@@ -38,6 +48,87 @@ function noStore(req, res, next) {
 
 // Protegemos TODO el router
 router.use(auth, isAdmin, adminLimiter, noStore);
+
+/**
+ * @swagger
+ * components:
+ *   securitySchemes:        # (solo si no lo tienes en otro archivo)
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
+ *   schemas:
+ *     OrderStatus:
+ *       type: string
+ *       description: |
+ *         Estados permitidos:
+ *         - **pending** — Orden creada, pendiente de flujo.
+ *         - **requires_payment** — Lista para pago / requiere pago.
+ *         - **paid** — Pagada (normalmente vía Stripe/confirm).
+ *         - **failed** — Pago fallido.
+ *         - **canceled** — Cancelada antes de pagarse.
+ *       enum: [pending, requires_payment, paid, failed, canceled]
+ *
+ *     UpdateOrderStatus:
+ *       type: object
+ *       required: [status]
+ *       properties:
+ *         status:
+ *           $ref: '#/components/schemas/OrderStatus'
+ *
+ *     AdminUser:
+ *       type: object
+ *       properties:
+ *         _id: { type: string, example: "6894c32d44f47d70918f74e3" }
+ *         name: { type: string, example: "Andrea Ruiz" }
+ *         email: { type: string, example: "andrea@example.com" }
+ *         role: { type: string, enum: [user, admin], example: "admin" }
+ *
+ *     PaginatedUsers:
+ *       type: object
+ *       properties:
+ *         items:
+ *           type: array
+ *           items: { $ref: '#/components/schemas/AdminUser' }
+ *         page: { type: integer, example: 1 }
+ *         limit: { type: integer, example: 10 }
+ *         total: { type: integer, example: 23 }
+ *         pages: { type: integer, example: 3 }
+ *
+ *     AdminOrderRow:
+ *       type: object
+ *       properties:
+ *         _id: { type: string, example: "68a8d65e12e1763965a32a72" }
+ *         status: { $ref: '#/components/schemas/OrderStatus' }
+ *         totalCents: { type: integer, example: 46500 }
+ *         createdAt: { type: string, format: date-time, example: "2025-08-22T20:41:16.021Z" }
+ *         user:
+ *           type: object
+ *           properties:
+ *             _id: { type: string, example: "6892747b6e6b7701bde7ed68" }
+ *             name: { type: string, example: "Carlos" }
+ *             email: { type: string, example: "carlos@example.com" }
+ *
+ *     PaginatedOrders:
+ *       type: object
+ *       properties:
+ *         items:
+ *           type: array
+ *           items: { $ref: '#/components/schemas/AdminOrderRow' }
+ *         page: { type: integer, example: 1 }
+ *         limit: { type: integer, example: 10 }
+ *         total: { type: integer, example: 9 }
+ *         pages: { type: integer, example: 1 }
+ *
+ *     TopProductsRow:
+ *       type: object
+ *       properties:
+ *         productId: { type: string, example: "66cfd0f73e5f5d0d3c9b1a2e" }
+ *         name: { type: string, example: "Cable HDMI 2.1" }
+ *         units: { type: integer, example: 9 }
+ *         revenueCents: { type: integer, example: 250000 }
+ *         revenueMXN: { type: number, example: 2500 }
+ */
 
 /**
  * @swagger
@@ -73,10 +164,17 @@ router.use(auth, isAdmin, adminLimiter, noStore);
  *     responses:
  *       200:
  *         description: Lista paginada
- *       401:
- *         description: No autenticado
- *       403:
- *         description: No autorizado (se requiere rol admin)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 statusCode: { type: integer, example: 200 }
+ *                 message: { type: string, example: "Usuarios obtenidos" }
+ *                 data: { $ref: '#/components/schemas/PaginatedUsers' }
+ *       401: { description: No autenticado }
+ *       403: { description: No autorizado (se requiere rol admin) }
  */
 router.get('/users', listUsersValidator, validate, adminController.listUsers);
 
@@ -132,8 +230,11 @@ router.patch('/users/:id/role', updateUserRoleValidator, validate, adminControll
  *       - in: query
  *         name: status
  *         schema:
- *           type: string
- *           enum: [pending, requires_payment, paid, failed, canceled]
+ *           $ref: '#/components/schemas/OrderStatus'
+ *         description: Filtrar por estado
+ *         examples:
+ *           pagadas: { value: paid }
+ *           canceladas: { value: canceled }
  *       - in: query
  *         name: from
  *         schema: { type: string, format: date-time }
@@ -149,8 +250,16 @@ router.patch('/users/:id/role', updateUserRoleValidator, validate, adminControll
  *     responses:
  *       200:
  *         description: Lista paginada de órdenes (con datos básicos de usuario)
- *       400:
- *         description: Parámetros inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 statusCode: { type: integer, example: 200 }
+ *                 message: { type: string, example: "Órdenes obtenidas" }
+ *                 data: { $ref: '#/components/schemas/PaginatedOrders' }
+ *       400: { description: Parámetros inválidos }
  */
 router.get('/orders', listOrdersValidator, validate, adminController.listOrders);
 
@@ -175,7 +284,6 @@ router.get('/orders', listOrdersValidator, validate, adminController.listOrders)
  */
 router.get(
   '/orders/:id',
-  // Validación mínima inline para no romper el patrón de tu validador global
   param('id').isMongoId().withMessage('id debe ser un MongoID válido'),
   validate,
   adminController.getOrderById
@@ -199,22 +307,26 @@ router.get(
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required: [status]
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [pending, requires_payment, paid, failed, canceled]
- *                 example: canceled
+ *             $ref: '#/components/schemas/UpdateOrderStatus'
+ *           examples:
+ *             Cancelar:
+ *               value: { "status": "canceled" }
+ *             MarcarComoPagada:
+ *               value: { "status": "paid" }
+ *             RequierePago:
+ *               value: { "status": "requires_payment" }
  *     responses:
- *       200:
- *         description: Estado actualizado
- *       400:
- *         description: Transición inválida o datos inválidos
- *       404:
- *         description: Orden no encontrada
+ *       200: { description: Estado actualizado }
+ *       400: { description: Transición inválida o datos inválidos }
+ *       404: { description: Orden no encontrada }
  */
-router.patch('/orders/:id/status', updateOrderStatusValidator, validate, adminController.updateOrderStatus);
+router.patch(
+  '/orders/:id/status',
+  sensitiveLimiter, // límite más estricto
+  updateOrderStatusValidator,
+  validate,
+  adminController.updateOrderStatus
+);
 
 /**
  * @swagger
@@ -239,6 +351,17 @@ router.patch('/orders/:id/status', updateOrderStatusValidator, validate, adminCo
  *     responses:
  *       200:
  *         description: Ranking de productos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 statusCode: { type: integer, example: 200 }
+ *                 message: { type: string, example: "Reporte generado" }
+ *                 data:
+ *                   type: array
+ *                   items: { $ref: '#/components/schemas/TopProductsRow' }
  */
 router.get('/reports/top-products', topProductsValidator, validate, adminController.reportTopProducts);
 
