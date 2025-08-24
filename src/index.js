@@ -10,6 +10,10 @@ const productRoutes = require('./routes/product.routes');
 const cartRoutes = require('./routes/cart.routes');
 const orderRoutes = require('./routes/order.routes');
 const webhookRoutes = require('./routes/webhook.routes'); // Ruta para Stripe
+const adminRoutes = require('./routes/admin.routes'); // Ruta para admin
+const userRoutes = require('./routes/user.routes'); // Ruta para usuarios (perfil, pedidos propios, etc)
+
+
 
 const swaggerDocs = require('./docs/swagger'); // wrapper de swagger
 const { configureSecurity } = require('./config/security');
@@ -40,7 +44,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
-app.use('/api/orders', orderRoutes);
+app.use('/api/orders', orderRoutes); 
+app.use('/api/admin', adminRoutes); // Rutas admin (protegidas y solo admin)
+app.use('/api/users', userRoutes); // Rutas de usuarios
 
 // Error handler al final
 app.use(errorHandler);
