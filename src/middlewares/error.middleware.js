@@ -1,49 +1,55 @@
 // src/middlewares/error.middleware.js
+const logger = require('../utils/logger');
 const { errorResponse } = require('../utils/response');
-// const logger = require('../utils/logger'); // cuando lo implementes
 
 module.exports = (err, req, res, next) => {
-  // 1) Status por defecto o de HttpError
+  // 1) Status + mensaje base
   let status = err.statusCode || 500;
   let message = err.message || 'Error del servidor';
 
   // 2) Mapeos comunes
-
-  // ID inválido / cast de Mongoose (ObjectId mal formado, etc.)
   if (err.name === 'CastError') {
     status = 400;
     message = 'Parámetro inválido';
-  }
-
-  // Validación de schema (Mongoose)
-  if (err.name === 'ValidationError') {
+  } else if (err.name === 'ValidationError') {
     status = 400;
     message = 'Errores de validación en el modelo';
-  }
-
-  // Clave única duplicada (Mongo/Mongoose)
-  if (err.code === 11000) {
+  } else if (err.code === 11000) {
     status = 409;
     const field = Object.keys(err.keyValue || {})[0];
-    message = field
-      ? `Valor duplicado para el campo "${field}"`
-      : 'Recurso duplicado';
-  }
-
-  // JWT
-  if (err.name === 'JsonWebTokenError') {
+    message = field ? `Valor duplicado para el campo "${field}"` : 'Recurso duplicado';
+  } else if (err.name === 'JsonWebTokenError') {
     status = 401;
     message = 'Token inválido';
-  }
-  if (err.name === 'TokenExpiredError') {
+  } else if (err.name === 'TokenExpiredError') {
     status = 401;
     message = 'Token expirado';
   }
 
-  // 3) Logging (cuando tengas logger)
-  // logger.error({ err, status, path: req.originalUrl, user: req.user?.id });
+  // 3) Logging estructurado (con correlación)
+  try {
+    logger.error('http_error', {
+      reqId: req.id,
+      userId: req.user?.id || req.user?._id || null,
+      method: req.method,
+      path: req.originalUrl,
+      ip: req.ip,
+      status,
+      name: err.name,
+      message: err.message,
+      stack: process.env.NODE_ENV === 'production' ? undefined : err.stack,
+      validation: err.name === 'ValidationError' ? Object.keys(err.errors || {}) : undefined,
+      duplicateKey: err.code === 11000 ? err.keyValue : undefined,
+    });
+  } catch (_) {
+    // no rompas la respuesta si el logger falla
+  }
 
   // 4) Respuesta homogénea
-  const debug = process.env.NODE_ENV === 'development' ? { stack: err.stack } : null;
+  const debug =
+    process.env.NODE_ENV === 'production'
+      ? null
+      : { name: err.name, stack: err.stack };
+
   return errorResponse(res, { message, statusCode: status, error: debug });
 };
