@@ -49,7 +49,8 @@ function corsOptionsDelegate(req, cb) {
     origin: allow,
     credentials: true,
     methods: ['GET','HEAD','POST','PUT','PATCH','DELETE','OPTIONS'],
-    allowedHeaders: ['Content-Type','Authorization'],
+    allowedHeaders: ['Content-Type','Authorization','X-Request-Id'],
+    exposedHeaders: ['X-Request-Id'],
     optionsSuccessStatus: 204,
   });
 }

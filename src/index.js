@@ -27,6 +27,9 @@ connectDB();
 // App
 const app = express();
 
+// Deshabilitar el header X-Powered-By
+app.disable('x-powered-by');
+
 // Seguridad global (helmet, CORS delegate, rate-limits)
 configureSecurity(app);
 
@@ -53,12 +56,6 @@ app.use(requestLogger());
 if (process.env.NODE_ENV !== 'production' || process.env.SWAGGER_ENABLED === 'true') {
   swaggerDocs(app);
 }
-
-if (process.env.NODE_ENV !== 'production') {
-  const devRoutes = require('./routes/_dev.routes');
-  app.use('/api/_dev', devRoutes);
-}
-
 
 // Rutas de negocio
 app.use('/api/auth', authRoutes);

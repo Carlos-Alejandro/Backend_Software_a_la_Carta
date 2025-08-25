@@ -1,4 +1,4 @@
-// src/middlewares/requestId.middleware.js
+// src/middlewares/logging/requestId.middleware.js
 const crypto = require('crypto');
 
 module.exports = function requestId() {
